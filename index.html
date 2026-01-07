@@ -3,89 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* Font Import for better look */
+        /* Google Font for Professional Look */
         @import url('https://fonts.googleapis.com/css2?family=Hind:wght@700&display=swap');
 
         body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: 'Hind', sans-serif; }
         
         #main-container {
             width: 1920px;
-            height: 85px; /* Thoda bada size */
+            height: 90px; /* Height increased for better visibility */
             display: flex;
             align-items: center;
-            background: #000; /* Black Base */
-            border-top: 4px solid #ffcc00;
-            box-shadow: 0px -5px 20px rgba(0,0,0,0.8);
+            background: #000;
+            border-top: 5px solid #ffcc00;
+            box-shadow: 0px -10px 30px rgba(0,0,0,0.9);
         }
 
-        /* City & Weather Styling */
+        /* City & Temperature Section */
         #location-box {
-            background: #ffcc00; /* Bright Yellow */
+            background: #ffcc00;
             color: #000;
-            padding: 0 30px;
+            padding: 0 35px;
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             font-weight: 900;
-            min-width: 250px;
+            min-width: 260px;
             z-index: 10;
-            border-right: 5px solid #fff;
+            border-right: 6px solid #fff;
         }
-        #city-name { font-size: 32px; letter-spacing: 1px; line-height: 1; }
-        #weather-info { font-size: 22px; margin-top: 5px; color: #cc0000; }
+        #city-name { font-size: 34px; letter-spacing: 1px; line-height: 1; text-transform: uppercase; }
+        #weather-info { font-size: 24px; margin-top: 5px; color: #cc0000; font-weight: bold; }
 
-        /* Ticker Window Styling */
+        /* Ticker Window Section */
         #ticker-window {
             flex-grow: 1;
             overflow: hidden;
             white-space: nowrap;
-            background: linear-gradient(180deg, #cc0000 0%, #800000 100%); /* Deep Red Gradient */
+            background: linear-gradient(180deg, #d90000 0%, #800000 100%);
             height: 100%;
             display: flex;
             align-items: center;
         }
+        
         .ticker-text {
             display: inline-block;
             padding-left: 100%;
-            animation: scroll 80s linear infinite; /* Speed Slow Kar Di Hai */
-            font-size: 38px; /* Bada Font */
+            /* SPEED CONTROL: Increased to 120s for extra slow movement */
+            animation: scroll 120s linear infinite; 
+            font-size: 42px; /* Extra Bold & Large */
             color: #ffffff;
-            font-weight: 700;
-            text-shadow: 3px 3px 5px rgba(0,0,0,0.6);
+            font-weight: 800;
+            text-shadow: 4px 4px 6px rgba(0,0,0,0.7);
         }
 
-        /* Time Section Styling */
+        /* Time Section Section */
         #time-box {
             background: #fff;
             color: #000;
-            padding: 0 30px;
+            padding: 0 35px;
             height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-width: 220px;
+            min-width: 240px;
             z-index: 10;
-            border-left: 5px solid #ffcc00;
+            border-left: 6px solid #ffcc00;
         }
-        #digital-clock { font-size: 35px; font-weight: 900; color: #000; }
+        #digital-clock { font-size: 38px; font-weight: 900; }
 
-        /* Animation */
         @keyframes scroll {
             0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
 
-        .news-item { display: inline-block; padding-right: 120px; }
+        /* Individual News Item Styling */
+        .news-item { display: inline-block; padding-right: 150px; }
         .news-item::before { 
             content: " ब्रेकिंग "; 
             background: #ffcc00; 
             color: #000; 
-            padding: 2px 10px; 
-            margin-right: 20px; 
-            border-radius: 5px;
-            font-size: 24px;
+            padding: 4px 15px; 
+            margin-right: 25px; 
+            border-radius: 4px;
+            font-size: 26px;
+            font-weight: 900;
         }
     </style>
 </head>
@@ -107,7 +110,7 @@
     </div>
 
     <script>
-        // Weather Update
+        // Weather Update Function
         async function updateWeather() {
             try {
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=26.84&longitude=80.94&current_weather=true`);
@@ -116,19 +119,19 @@
             } catch(e) { document.getElementById('weather-info').innerText = "Sunny"; }
         }
 
-        // English News to Hindi Text (Only Display)
+        // News Fetching Function
         async function fetchNews() {
             try {
                 const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/World.xml`);
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    // Yahan hum sirf titles le rahe hain bina voice ke
                     let newsHTML = data.items.map(item => `<span class="news-item">${item.title}</span>`).join("");
                     document.getElementById('news-content').innerHTML = newsHTML + newsHTML;
                 }
-            } catch (e) { document.getElementById('news-content').innerHTML = "News Updating... | Stay Tuned | "; }
+            } catch (e) { document.getElementById('news-content').innerHTML = "न्यूज़ अपडेट हो रही है... बने रहें हमारे साथ | "; }
         }
 
+        // Clock Function
         function updateClock() {
             const now = new Date();
             document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
