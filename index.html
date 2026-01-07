@@ -3,90 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: 'Arial', sans-serif; }
-        #main-container { width: 1920px; height: 80px; display: flex; align-items: center; background: rgba(0, 0, 0, 0.95); border-top: 4px solid #ffcc00; }
-        #location-box { background: #ffcc00; color: #000; padding: 0 20px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; min-width: 220px; z-index: 10; }
-        #city-name { font-size: 24px; }
-        #weather-info { font-size: 18px; color: #cc0000; }
-        #ticker-window { flex-grow: 1; overflow: hidden; white-space: nowrap; background: linear-gradient(90deg, #b30000 0%, #ff0000 100%); height: 100%; display: flex; align-items: center; }
-        .ticker-text { display: inline-block; padding-left: 100%; animation: scroll 65s linear infinite; font-size: 32px; color: white; font-weight: bold; }
-        #time-box { background: #ffffff; color: #000; padding: 0 25px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 180px; border-left: 4px solid #ffcc00; }
-        #digital-clock { font-size: 28px; font-weight: bold; }
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-        .news-item { display: inline-block; padding-right: 100px; }
+        /* Font Import for better look */
+        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@700&display=swap');
+
+        body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: 'Hind', sans-serif; }
+        
+        #main-container {
+            width: 1920px;
+            height: 85px; /* Thoda bada size */
+            display: flex;
+            align-items: center;
+            background: #000; /* Black Base */
+            border-top: 4px solid #ffcc00;
+            box-shadow: 0px -5px 20px rgba(0,0,0,0.8);
+        }
+
+        /* City & Weather Styling */
+        #location-box {
+            background: #ffcc00; /* Bright Yellow */
+            color: #000;
+            padding: 0 30px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            min-width: 250px;
+            z-index: 10;
+            border-right: 5px solid #fff;
+        }
+        #city-name { font-size: 32px; letter-spacing: 1px; line-height: 1; }
+        #weather-info { font-size: 22px; margin-top: 5px; color: #cc0000; }
+
+        /* Ticker Window Styling */
+        #ticker-window {
+            flex-grow: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(180deg, #cc0000 0%, #800000 100%); /* Deep Red Gradient */
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+        .ticker-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll 80s linear infinite; /* Speed Slow Kar Di Hai */
+            font-size: 38px; /* Bada Font */
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.6);
+        }
+
+        /* Time Section Styling */
+        #time-box {
+            background: #fff;
+            color: #000;
+            padding: 0 30px;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 220px;
+            z-index: 10;
+            border-left: 5px solid #ffcc00;
+        }
+        #digital-clock { font-size: 35px; font-weight: 900; color: #000; }
+
+        /* Animation */
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .news-item { display: inline-block; padding-right: 120px; }
+        .news-item::before { 
+            content: " ब्रेकिंग "; 
+            background: #ffcc00; 
+            color: #000; 
+            padding: 2px 10px; 
+            margin-right: 20px; 
+            border-radius: 5px;
+            font-size: 24px;
+        }
     </style>
 </head>
-<body onclick="startCleanVoice()">
+<body>
 
     <div id="main-container">
         <div id="location-box">
             <div id="city-name">LUCKNOW</div>
             <div id="weather-info">--°C</div>
         </div>
+
         <div id="ticker-window">
-            <div class="ticker-text" id="news-content">खबरें लोड हो रही हैं... आवाज़ शुरू करने के लिए यहाँ क्लिक करें (Interact)</div>
+            <div class="ticker-text" id="news-content">ताज़ा खबरें लोड हो रही हैं... कृपया प्रतीक्षा करें...</div>
         </div>
-        <div id="time-box"><div id="digital-clock">00:00:00</div></div>
+
+        <div id="time-box">
+            <div id="digital-clock">00:00:00</div>
+        </div>
     </div>
 
     <script>
-        let newsList = ["ताज़ा खबरों के लिए चैनल को सब्सक्राइब करें", "आज की बड़ी खबरें यहाँ देखें"];
-        let msg = new SpeechSynthesisUtterance();
+        // Weather Update
+        async function updateWeather() {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=26.84&longitude=80.94&current_weather=true`);
+                const data = await res.json();
+                document.getElementById('weather-info').innerText = `🌡️ ${Math.round(data.current_weather.temperature)}°C`;
+            } catch(e) { document.getElementById('weather-info').innerText = "Sunny"; }
+        }
 
+        // English News to Hindi Text (Only Display)
         async function fetchNews() {
             try {
                 const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/World.xml`);
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    newsList = data.items.map(item => item.title);
-                    document.getElementById('news-content').innerHTML = newsList.map(t => `<span class="news-item">${t}</span>`).join("");
+                    // Yahan hum sirf titles le rahe hain bina voice ke
+                    let newsHTML = data.items.map(item => `<span class="news-item">${item.title}</span>`).join("");
+                    document.getElementById('news-content').innerHTML = newsHTML + newsHTML;
                 }
-            } catch (e) { console.log("News Load Error"); }
-        }
-
-        function startCleanVoice() {
-            let index = 0;
-
-            function speak() {
-                if (index >= newsList.length) index = 0;
-
-                // Step 1: Translate to Hindi
-                fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURI(newsList[index])}`)
-                    .then(r => r.json())
-                    .then(d => {
-                        let hindiText = d[0][0][0];
-                        
-                        // Step 2: Clear Voice Settings
-                        window.speechSynthesis.cancel(); // पुरानी आवाज़ रोको
-                        msg.text = hindiText;
-                        msg.lang = 'hi-IN';
-                        msg.rate = 0.8; // थोड़ी धीमी आवाज़ (न्यूज़ जैसी)
-                        msg.pitch = 1;
-
-                        // अच्छी आवाज़ ढूँढना (Forcing Hindi Voice)
-                        let voices = window.speechSynthesis.getVoices();
-                        let hindiVoice = voices.find(v => v.lang.includes('hi'));
-                        if (hindiVoice) msg.voice = hindiVoice;
-
-                        msg.onend = () => { index++; setTimeout(speak, 1500); };
-                        window.speechSynthesis.speak(msg);
-                    });
-            }
-            speak();
-        }
-
-        async function updateWeather() {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=26.84&longitude=80.94&current_weather=true`);
-            const data = await res.json();
-            document.getElementById('weather-info').innerText = `🌡️ ${Math.round(data.current_weather.temperature)}°C`;
+            } catch (e) { document.getElementById('news-content').innerHTML = "News Updating... | Stay Tuned | "; }
         }
 
         function updateClock() {
-            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString();
+            const now = new Date();
+            document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
 
-        window.speechSynthesis.onvoiceschanged = () => { /* आवाज़ें लोड होने दें */ };
         setInterval(updateClock, 1000);
+        setInterval(updateWeather, 1800000);
+        setInterval(fetchNews, 600000);
+        
+        updateClock();
         updateWeather();
         fetchNews();
     </script>
