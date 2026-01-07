@@ -9,14 +9,14 @@
         #city-name { font-size: 24px; }
         #weather-info { font-size: 18px; color: #cc0000; }
         #ticker-window { flex-grow: 1; overflow: hidden; white-space: nowrap; background: linear-gradient(90deg, #b30000 0%, #ff0000 100%); height: 100%; display: flex; align-items: center; }
-        .ticker-text { display: inline-block; padding-left: 100%; animation: scroll 60s linear infinite; font-size: 30px; color: white; font-weight: bold; }
+        .ticker-text { display: inline-block; padding-left: 100%; animation: scroll 65s linear infinite; font-size: 32px; color: white; font-weight: bold; }
         #time-box { background: #ffffff; color: #000; padding: 0 25px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 180px; border-left: 4px solid #ffcc00; }
         #digital-clock { font-size: 28px; font-weight: bold; }
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
         .news-item { display: inline-block; padding-right: 100px; }
     </style>
 </head>
-<body onclick="startHindiNews()">
+<body onclick="startCleanVoice()">
 
     <div id="main-container">
         <div id="location-box">
@@ -24,52 +24,55 @@
             <div id="weather-info">--°C</div>
         </div>
         <div id="ticker-window">
-            <div class="ticker-text" id="news-content">खबरें लोड हो रही हैं... आवाज़ के लिए यहां क्लिक करें (Interact)</div>
+            <div class="ticker-text" id="news-content">खबरें लोड हो रही हैं... आवाज़ शुरू करने के लिए यहाँ क्लिक करें (Interact)</div>
         </div>
         <div id="time-box"><div id="digital-clock">00:00:00</div></div>
     </div>
 
-    <script src="https://code.responsivevoice.org/responsivevoice.js?key=YOUR_FREE_KEY"></script>
-
     <script>
-        let newsList = ["ताज़ा खबरों के लिए बने रहें", "लखनऊ में मौसम सुहावना है"];
+        let newsList = ["ताज़ा खबरों के लिए चैनल को सब्सक्राइब करें", "आज की बड़ी खबरें यहाँ देखें"];
+        let msg = new SpeechSynthesisUtterance();
 
         async function fetchNews() {
             try {
-                // Stable News Feed (New York Times)
                 const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/World.xml`);
                 const data = await res.json();
                 if (data.status === 'ok') {
                     newsList = data.items.map(item => item.title);
                     document.getElementById('news-content').innerHTML = newsList.map(t => `<span class="news-item">${t}</span>`).join("");
                 }
-            } catch (e) { console.log("News Error"); }
+            } catch (e) { console.log("News Load Error"); }
         }
 
-        function startHindiNews() {
+        function startCleanVoice() {
             let index = 0;
-            
-            function speakNext() {
+
+            function speak() {
                 if (index >= newsList.length) index = 0;
-                
-                // Pehle Translate karega phir saaf awaz mein bolega
-                const text = newsList[index];
-                const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURI(text)}`;
-                
-                fetch(translateUrl)
-                    .then(res => res.json())
-                    .then(data => {
-                        let hindiText = data[0][0][0];
-                        // ResponsiveVoice use kar rahe hain clear awaz ke liye
-                        if(window.responsiveVoice) {
-                            responsiveVoice.speak(hindiText, "Hindi Female", {
-                                rate: 0.9, 
-                                onend: () => { index++; setTimeout(speakNext, 1000); }
-                            });
-                        }
-                    }).catch(() => { index++; speakNext(); });
+
+                // Step 1: Translate to Hindi
+                fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURI(newsList[index])}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        let hindiText = d[0][0][0];
+                        
+                        // Step 2: Clear Voice Settings
+                        window.speechSynthesis.cancel(); // पुरानी आवाज़ रोको
+                        msg.text = hindiText;
+                        msg.lang = 'hi-IN';
+                        msg.rate = 0.8; // थोड़ी धीमी आवाज़ (न्यूज़ जैसी)
+                        msg.pitch = 1;
+
+                        // अच्छी आवाज़ ढूँढना (Forcing Hindi Voice)
+                        let voices = window.speechSynthesis.getVoices();
+                        let hindiVoice = voices.find(v => v.lang.includes('hi'));
+                        if (hindiVoice) msg.voice = hindiVoice;
+
+                        msg.onend = () => { index++; setTimeout(speak, 1500); };
+                        window.speechSynthesis.speak(msg);
+                    });
             }
-            speakNext();
+            speak();
         }
 
         async function updateWeather() {
@@ -82,6 +85,7 @@
             document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString();
         }
 
+        window.speechSynthesis.onvoiceschanged = () => { /* आवाज़ें लोड होने दें */ };
         setInterval(updateClock, 1000);
         updateWeather();
         fetchNews();
