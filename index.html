@@ -16,7 +16,7 @@
         .news-item { display: inline-block; padding-right: 100px; }
     </style>
 </head>
-<body onclick="startHindiVoice()">
+<body onclick="startHindiNews()">
 
     <div id="main-container">
         <div id="location-box">
@@ -24,18 +24,19 @@
             <div id="weather-info">--°C</div>
         </div>
         <div id="ticker-window">
-            <div class="ticker-text" id="news-content">आवाज़ शुरू करने के लिए 'Interact' पर क्लिक करें...</div>
+            <div class="ticker-text" id="news-content">खबरें लोड हो रही हैं... आवाज़ के लिए यहां क्लिक करें (Interact)</div>
         </div>
         <div id="time-box"><div id="digital-clock">00:00:00</div></div>
     </div>
 
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=YOUR_FREE_KEY"></script>
+
     <script>
-        let synth = window.speechSynthesis;
-        let newsList = [];
+        let newsList = ["ताज़ा खबरों के लिए बने रहें", "लखनऊ में मौसम सुहावना है"];
 
         async function fetchNews() {
             try {
-                // Global News Feed
+                // Stable News Feed (New York Times)
                 const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/World.xml`);
                 const data = await res.json();
                 if (data.status === 'ok') {
@@ -45,40 +46,36 @@
             } catch (e) { console.log("News Error"); }
         }
 
-        async function startHindiVoice() {
-            if (synth.speaking) return;
+        function startHindiNews() {
             let index = 0;
-
-            async function speakNext() {
+            
+            function speakNext() {
                 if (index >= newsList.length) index = 0;
                 
-                // English से Hindi अनुवाद का जुगाड़ (Free API)
+                // Pehle Translate karega phir saaf awaz mein bolega
                 const text = newsList[index];
                 const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURI(text)}`;
                 
-                try {
-                    const res = await fetch(translateUrl);
-                    const data = await res.json();
-                    const hindiText = data[0][0][0];
-
-                    let utter = new SpeechSynthesisUtterance(hindiText);
-                    utter.lang = 'hi-IN'; // हिंदी आवाज़ सेट की
-                    utter.rate = 0.9; 
-                    utter.onend = () => { index++; speakNext(); };
-                    synth.speak(utter);
-                } catch (e) {
-                    index++; speakNext();
-                }
+                fetch(translateUrl)
+                    .then(res => res.json())
+                    .then(data => {
+                        let hindiText = data[0][0][0];
+                        // ResponsiveVoice use kar rahe hain clear awaz ke liye
+                        if(window.responsiveVoice) {
+                            responsiveVoice.speak(hindiText, "Hindi Female", {
+                                rate: 0.9, 
+                                onend: () => { index++; setTimeout(speakNext, 1000); }
+                            });
+                        }
+                    }).catch(() => { index++; speakNext(); });
             }
-            if (newsList.length > 0) speakNext();
+            speakNext();
         }
 
         async function updateWeather() {
-            try {
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=26.84&longitude=80.94&current_weather=true`);
-                const data = await res.json();
-                document.getElementById('weather-info').innerText = `🌡️ ${Math.round(data.current_weather.temperature)}°C`;
-            } catch(e) {}
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=26.84&longitude=80.94&current_weather=true`);
+            const data = await res.json();
+            document.getElementById('weather-info').innerText = `🌡️ ${Math.round(data.current_weather.temperature)}°C`;
         }
 
         function updateClock() {
