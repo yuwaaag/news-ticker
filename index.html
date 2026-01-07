@@ -3,64 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: transparent; }
-        #main-container { width: 1920px; height: 70px; display: flex; align-items: center; font-family: 'Arial', sans-serif; background: rgba(0, 0, 0, 0.9); border-top: 3px solid #ffcc00; }
-        #city-box { background: #ffcc00; color: #000; padding: 0 25px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; min-width: 180px; }
-        #breaking-text { font-size: 16px; color: #cc0000; animation: blink 1s infinite; }
-        #city-name { font-size: 26px; }
+        body { margin: 0; padding: 0; overflow: hidden; background: transparent; font-family: 'Arial', sans-serif; }
+        #main-container { width: 1920px; height: 80px; display: flex; align-items: center; background: rgba(0, 0, 0, 0.95); border-top: 4px solid #ffcc00; }
+        #location-box { background: #ffcc00; color: #000; padding: 0 20px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; min-width: 220px; z-index: 10; }
+        #city-name { font-size: 24px; }
+        #weather-info { font-size: 18px; color: #cc0000; }
         #ticker-window { flex-grow: 1; overflow: hidden; white-space: nowrap; background: linear-gradient(90deg, #b30000 0%, #ff0000 100%); height: 100%; display: flex; align-items: center; }
-        .ticker-text { display: inline-block; padding-left: 100%; animation: scroll 45s linear infinite; font-size: 32px; color: white; font-weight: bold; }
-        #time-box { background: #ffffff; color: #000; padding: 0 30px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; min-width: 200px; border-left: 3px solid #ffcc00; }
-        #digital-clock { font-size: 30px; }
-        #date-display { font-size: 14px; color: #666; }
+        .ticker-text { display: inline-block; padding-left: 100%; animation: scroll 60s linear infinite; font-size: 30px; color: white; font-weight: bold; }
+        #time-box { background: #ffffff; color: #000; padding: 0 25px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 180px; border-left: 4px solid #ffcc00; }
+        #digital-clock { font-size: 28px; font-weight: bold; }
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         .news-item { display: inline-block; padding-right: 100px; }
-        .news-item::before { content: " | "; color: #ffcc00; padding-right: 25px; }
     </style>
 </head>
-<body>
+<body onclick="startHindiVoice()">
+
     <div id="main-container">
-        <div id="city-box">
-            <div id="breaking-text">ब्रेकिंग न्यूज़</div>
+        <div id="location-box">
             <div id="city-name">LUCKNOW</div>
+            <div id="weather-info">--°C</div>
         </div>
         <div id="ticker-window">
-            <div class="ticker-text" id="news-content">ताज़ा खबरें लोड हो रही हैं...</div>
+            <div class="ticker-text" id="news-content">आवाज़ शुरू करने के लिए 'Interact' पर क्लिक करें...</div>
         </div>
-        <div id="time-box">
-            <div id="digital-clock">00:00:00</div>
-            <div id="date-display">लोडिंग...</div>
-        </div>
+        <div id="time-box"><div id="digital-clock">00:00:00</div></div>
     </div>
 
     <script>
-        // RSS2JSON API Key (यह फ्री है और न्यूज़ लोड करने में मदद करती है)
-        async function fetchRSS() {
+        let synth = window.speechSynthesis;
+        let newsList = [];
+
+        async function fetchNews() {
             try {
-                // हमने न्यूज़ फ़ीड बदल दी है जो ज़्यादा स्टेबल है
-                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://www.jagran.com/rss/news/national.xml`);
+                // Global News Feed
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/World.xml`);
                 const data = await res.json();
                 if (data.status === 'ok') {
-                    let newsHTML = data.items.map(item => `<span class="news-item">${item.title}</span>`).join("");
-                    document.getElementById('news-content').innerHTML = newsHTML + newsHTML;
-                } else { throw new Error(); }
-            } catch (e) {
-                // अगर पहली फ़ीड फ़ेल हो तो बैकअप न्यूज़
-                document.getElementById('news-content').innerHTML = "यूपी में विकास कार्यों में तेज़ी | किसानों के लिए नई योजना | ताज़ा खबरों के लिए बने रहें |";
+                    newsList = data.items.map(item => item.title);
+                    document.getElementById('news-content').innerHTML = newsList.map(t => `<span class="news-item">${t}</span>`).join("");
+                }
+            } catch (e) { console.log("News Error"); }
+        }
+
+        async function startHindiVoice() {
+            if (synth.speaking) return;
+            let index = 0;
+
+            async function speakNext() {
+                if (index >= newsList.length) index = 0;
+                
+                // English से Hindi अनुवाद का जुगाड़ (Free API)
+                const text = newsList[index];
+                const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURI(text)}`;
+                
+                try {
+                    const res = await fetch(translateUrl);
+                    const data = await res.json();
+                    const hindiText = data[0][0][0];
+
+                    let utter = new SpeechSynthesisUtterance(hindiText);
+                    utter.lang = 'hi-IN'; // हिंदी आवाज़ सेट की
+                    utter.rate = 0.9; 
+                    utter.onend = () => { index++; speakNext(); };
+                    synth.speak(utter);
+                } catch (e) {
+                    index++; speakNext();
+                }
             }
+            if (newsList.length > 0) speakNext();
+        }
+
+        async function updateWeather() {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=26.84&longitude=80.94&current_weather=true`);
+                const data = await res.json();
+                document.getElementById('weather-info').innerText = `🌡️ ${Math.round(data.current_weather.temperature)}°C`;
+            } catch(e) {}
         }
 
         function updateClock() {
-            const now = new Date();
-            document.getElementById('digital-clock').innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('date-display').innerText = now.toLocaleDateString('hi-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString();
         }
 
         setInterval(updateClock, 1000);
-        setInterval(fetchRSS, 600000); 
-        updateClock();
-        fetchRSS();
+        updateWeather();
+        fetchNews();
     </script>
 </body>
 </html>
